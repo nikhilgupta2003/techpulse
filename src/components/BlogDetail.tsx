@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Blog, User } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, Heart, MessageSquare, Share2, Calendar, User as UserIcon, Check } from 'lucide-react';
+import { ArrowLeft, Heart, MessageSquare, Share2, Calendar, User as UserIcon, Check, Sparkles, Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import CommentSection from './CommentSection';
+import { summarizeBlog } from '../lib/gemini';
 
 interface BlogDetailProps {
   blog: Blog;
@@ -14,6 +15,9 @@ interface BlogDetailProps {
 
 export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
   const [copied, setCopied] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const handleShare = async () => {
     const shareData = {
@@ -41,6 +45,24 @@ export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
     }
   };
 
+  const handleSummarize = async () => {
+    if (summary) {
+      setShowSummary(true);
+      return;
+    }
+
+    setIsSummarizing(true);
+    try {
+      const result = await summarizeBlog(blog.content);
+      setSummary(result);
+      setShowSummary(true);
+    } catch (err) {
+      console.error('Summarization failed:', err);
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -58,6 +80,11 @@ export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
       <div className="space-y-8">
         <div className="space-y-4">
           <div className="flex items-center gap-2">
+            {blog.isDraft && (
+              <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full uppercase tracking-wider">
+                Draft
+              </span>
+            )}
             <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full uppercase tracking-wider">
               {blog.category}
             </span>
@@ -95,6 +122,20 @@ export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSummarize}
+              disabled={isSummarizing}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-sm font-bold hover:bg-indigo-100 transition-all disabled:opacity-50"
+            >
+              {isSummarizing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {isSummarizing ? 'Summarizing...' : 'Summarize AI'}
+            </motion.button>
             <button className="p-3 hover:bg-gray-50 rounded-full text-gray-400 hover:text-red-500 transition-all">
               <Heart className="w-5 h-5" />
             </button>
@@ -120,6 +161,33 @@ export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
             </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showSummary && summary && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-indigo-50/50 rounded-[32px] p-8 border border-indigo-100 relative">
+                <button 
+                  onClick={() => setShowSummary(false)}
+                  className="absolute top-6 right-6 p-2 hover:bg-indigo-100 rounded-full text-indigo-400 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <h3 className="text-lg font-bold text-indigo-900">AI Summary</h3>
+                </div>
+                <div className="prose prose-indigo prose-sm max-w-none text-indigo-900/80">
+                  <ReactMarkdown>{summary}</ReactMarkdown>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="prose prose-lg max-w-none prose-blue prose-headings:font-bold prose-p:text-gray-700 prose-p:leading-relaxed py-12">
           <ReactMarkdown>{blog.content}</ReactMarkdown>

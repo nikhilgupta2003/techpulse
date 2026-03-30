@@ -17,14 +17,17 @@ export default function BlogEditor({ user, onClose, onSuccess }: BlogEditorProps
   const [category, setCategory] = useState(CATEGORIES[0].id);
   const [subcategory, setSubcategory] = useState(CATEGORIES[0].subcategories[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDrafting, setIsDrafting] = useState(false);
 
   const selectedCategory = CATEGORIES.find(c => c.id === category);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
     if (!title || !content) return;
 
-    setIsSubmitting(true);
+    if (isDraft) setIsDrafting(true);
+    else setIsSubmitting(true);
+
     try {
       const excerpt = content.slice(0, 150).replace(/[#*`]/g, '') + '...';
       await addDoc(collection(db, 'blogs'), {
@@ -39,13 +42,15 @@ export default function BlogEditor({ user, onClose, onSuccess }: BlogEditorProps
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         likesCount: 0,
-        viewsCount: 0
+        viewsCount: 0,
+        isDraft
       });
       onSuccess();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'blogs');
     } finally {
       setIsSubmitting(false);
+      setIsDrafting(false);
     }
   };
 
@@ -75,7 +80,7 @@ export default function BlogEditor({ user, onClose, onSuccess }: BlogEditorProps
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
+        <form onSubmit={(e) => handleSubmit(e, false)} className="flex-1 overflow-y-auto p-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -142,19 +147,32 @@ export default function BlogEditor({ user, onClose, onSuccess }: BlogEditorProps
               <ImageIcon className="w-5 h-5" />
             </button>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSubmit}
-            disabled={isSubmitting || !title || !content}
-            className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200"
-          >
-            {isSubmitting ? 'Publishing...' : (
-              <>
-                <Send className="w-4 h-4" /> Publish Post
-              </>
-            )}
-          </motion.button>
+          <div className="flex items-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={(e) => handleSubmit(e, true)}
+              disabled={isSubmitting || isDrafting || !title || !content}
+              className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isDrafting ? 'Saving Draft...' : 'Save as Draft'}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={(e) => handleSubmit(e, false)}
+              disabled={isSubmitting || isDrafting || !title || !content}
+              className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200"
+            >
+              {isSubmitting ? 'Publishing...' : (
+                <>
+                  <Send className="w-4 h-4" /> Publish Post
+                </>
+              )}
+            </motion.button>
+          </div>
         </div>
       </motion.div>
     </motion.div>

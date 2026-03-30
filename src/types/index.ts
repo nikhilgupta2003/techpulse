@@ -5,6 +5,10 @@ export interface User {
   photoURL: string | null;
   role: 'user' | 'admin';
   bio?: string;
+  location?: string;
+  website?: string;
+  twitter?: string;
+  github?: string;
   createdAt: any;
 }
 
@@ -22,6 +26,7 @@ export interface Blog {
   updatedAt: any;
   likesCount: number;
   viewsCount: number;
+  isDraft: boolean;
 }
 
 export interface Comment {

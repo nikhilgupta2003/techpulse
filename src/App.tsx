@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import BlogCard from './components/BlogCard';
 import BlogEditor from './components/BlogEditor';
 import BlogDetail from './components/BlogDetail';
+import UserProfile from './components/UserProfile';
 import ErrorBoundary from './components/ErrorBoundary';
 import { CATEGORIES } from './constants/categories';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,6 +16,8 @@ export default function App() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showDrafts, setShowDrafts] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -58,9 +61,22 @@ export default function App() {
     };
   }, []);
 
-  const filteredBlogs = activeCategory 
-    ? blogs.filter(b => b.category.toLowerCase() === activeCategory.toLowerCase())
-    : blogs;
+  const filteredBlogs = blogs.filter(blog => {
+    // If showing drafts, only show user's drafts
+    if (showDrafts) {
+      return blog.isDraft && blog.authorId === user?.uid;
+    }
+    
+    // Otherwise, show only non-drafts
+    if (blog.isDraft) return false;
+
+    // Apply category filter
+    if (activeCategory) {
+      return blog.category.toLowerCase() === activeCategory.toLowerCase();
+    }
+
+    return true;
+  });
 
   const handleLogin = async () => {
     try {
@@ -87,9 +103,16 @@ export default function App() {
     if (page === 'home') {
       setSelectedBlog(null);
       setActiveCategory(null);
+      setShowDrafts(false);
     } else if (page === 'editor') {
       if (user) {
         setIsEditorOpen(true);
+      } else {
+        handleLogin();
+      }
+    } else if (page === 'profile') {
+      if (user) {
+        setIsProfileOpen(true);
       } else {
         handleLogin();
       }
@@ -207,19 +230,42 @@ export default function App() {
                 {/* Categories Bar */}
                 <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar">
                   <button
-                    onClick={() => setActiveCategory(null)}
+                    onClick={() => {
+                      setActiveCategory(null);
+                      setShowDrafts(false);
+                    }}
                     className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
-                      !activeCategory 
+                      !activeCategory && !showDrafts
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
                         : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
                     }`}
                   >
                     <LayoutGrid className="w-4 h-4" /> All Posts
                   </button>
+
+                  {user && (
+                    <button
+                      onClick={() => {
+                        setActiveCategory(null);
+                        setShowDrafts(true);
+                      }}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
+                        showDrafts
+                          ? 'bg-amber-600 text-white shadow-lg shadow-amber-200' 
+                          : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
+                      }`}
+                    >
+                      <PlusCircle className="w-4 h-4" /> My Drafts
+                    </button>
+                  )}
+
                   {CATEGORIES.map(cat => (
                     <button
                       key={cat.id}
-                      onClick={() => setActiveCategory(cat.name)}
+                      onClick={() => {
+                        setActiveCategory(cat.name);
+                        setShowDrafts(false);
+                      }}
                       className={`px-6 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap ${
                         activeCategory === cat.name 
                           ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
@@ -235,7 +281,12 @@ export default function App() {
                 <div className="space-y-8">
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      {activeCategory ? (
+                      {showDrafts ? (
+                        <>
+                          <PlusCircle className="w-6 h-6 text-amber-600" />
+                          My Drafts
+                        </>
+                      ) : activeCategory ? (
                         <>
                           <Filter className="w-6 h-6 text-blue-600" />
                           {activeCategory} Articles
@@ -290,6 +341,15 @@ export default function App() {
                 setIsEditorOpen(false);
                 // Refresh is handled by onSnapshot
               }}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isProfileOpen && user && (
+            <UserProfile 
+              user={user} 
+              onClose={() => setIsProfileOpen(false)} 
             />
           )}
         </AnimatePresence>

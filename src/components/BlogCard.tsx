@@ -20,6 +20,11 @@ export default function BlogCard({ blog, onClick }: BlogCardProps) {
     >
       <div className="p-6">
         <div className="flex items-center gap-2 mb-4">
+          {blog.isDraft && (
+            <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full uppercase tracking-wider">
+              Draft
+            </span>
+          )}
           <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full uppercase tracking-wider">
             {blog.category}
           </span>
