@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL to user's profile picture" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User's role in the platform" },
+        "bio": { "type": "string", "description": "Short biography of the user" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user profile was created" }
+      },
+      "required": ["uid", "email", "displayName"]
+    },
+    "Blog": {
+      "title": "Blog Post",
+      "description": "A technical blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique identifier for the blog post" },
+        "title": { "type": "string", "description": "The title of the blog post" },
+        "content": { "type": "string", "description": "The full content of the blog post in Markdown" },
+        "excerpt": { "type": "string", "description": "A short summary of the blog post" },
+        "authorId": { "type": "string", "description": "UID of the author" },
+        "authorName": { "type": "string", "description": "Display name of the author" },
+        "authorPhoto": { "type": "string", "format": "uri", "description": "Photo URL of the author" },
+        "category": { "type": "string", "description": "Main category (e.g., AI, DevOps)" },
+        "subcategory": { "type": "string", "description": "Subcategory (e.g., LLMs, Docker)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the post was created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the post was last updated" },
+        "likesCount": { "type": "integer", "description": "Number of likes" },
+        "viewsCount": { "type": "integer", "description": "Number of views" }
+      },
+      "required": ["title", "content", "authorId", "category"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a blog post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique identifier for the comment" },
+        "blogId": { "type": "string", "description": "The ID of the blog post being commented on" },
+        "authorId": { "type": "string", "description": "UID of the commenter" },
+        "authorName": { "type": "string", "description": "Display name of the commenter" },
+        "authorPhoto": { "type": "string", "format": "uri", "description": "Photo URL of the commenter" },
+        "content": { "type": "string", "description": "The comment text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the comment was created" }
+      },
+      "required": ["blogId", "authorId", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/blogs/{blogId}": {
+      "schema": "Blog",
+      "description": "Blog posts"
+    },
+    "/blogs/{blogId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comments on a specific blog post"
+    }
+  }
+}
