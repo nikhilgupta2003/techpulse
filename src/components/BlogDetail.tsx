@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Blog, User } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, Heart, MessageSquare, Share2, Calendar, User as UserIcon } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowLeft, Heart, MessageSquare, Share2, Calendar, User as UserIcon, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import CommentSection from './CommentSection';
 
@@ -13,6 +13,34 @@ interface BlogDetailProps {
 }
 
 export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: blog.title,
+      text: blog.excerpt,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Error copying to clipboard:', err);
+      }
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -70,9 +98,26 @@ export default function BlogDetail({ blog, user, onBack }: BlogDetailProps) {
             <button className="p-3 hover:bg-gray-50 rounded-full text-gray-400 hover:text-red-500 transition-all">
               <Heart className="w-5 h-5" />
             </button>
-            <button className="p-3 hover:bg-gray-50 rounded-full text-gray-400 hover:text-blue-500 transition-all">
-              <Share2 className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={handleShare}
+                className="p-3 hover:bg-gray-50 rounded-full text-gray-400 hover:text-blue-500 transition-all"
+              >
+                {copied ? <Check className="w-5 h-5 text-green-500" /> : <Share2 className="w-5 h-5" />}
+              </button>
+              <AnimatePresence>
+                {copied && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs font-bold rounded-lg whitespace-nowrap"
+                  >
+                    URL Copied!
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
